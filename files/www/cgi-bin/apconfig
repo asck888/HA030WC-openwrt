@@ -1,0 +1,131 @@
+#!/bin/sh
+# ============================================================
+# HA030WC 极简 AP 配置后台（CGI）
+# 只做三件事：改无线(SSID/密码/信道)、改 LAN 管理 IP、一键改 MAC+同 SSID
+# 不挂 LuCI，没有任何多余菜单。
+# ============================================================
+. /lib/functions.sh
+
+# ---------- 读取 POST 表单 ----------
+POST_FILE=/tmp/post.$$
+rm -f "$POST_FILE"
+if [ "$REQUEST_METHOD" = "POST" ]; then
+	cat | tr '&' '\n' | while IFS='=' read -r k v; do
+		[ -z "$k" ] && continue
+		# URL 解码：+ -> 空格，%XX -> 字符
+		v=$(printf '%b' "$(printf '%s' "$v" | sed 's/+/ /g; s/%\([0-9A-Fa-f][0-9A-Fa-f]\)/\\x\1/g')")
+		printf '%s=%s\n' "$k" "$v" >> "$POST_FILE"
+	done
+fi
+post_val() { [ -f "$POST_FILE" ] && grep "^$1=" "$POST_FILE" | head -1 | cut -d= -f2-; }
+
+action=$(post_val action)
+msg=""
+
+case "$action" in
+	wifi)
+		ssid=$(post_val ssid); key=$(post_val key); ch=$(post_val channel)
+		[ -n "$ssid" ] && {
+			uci set wireless.@wifi-iface[0].ssid="$ssid"
+			uci set wireless.@wifi-iface[1].ssid="$ssid"
+		}
+		[ -n "$key" ] && {
+			uci set wireless.@wifi-iface[0].key="$key"
+			uci set wireless.@wifi-iface[1].key="$key"
+		}
+		[ -n "$ch" ] && {
+			uci set wireless.radio0.channel="$ch"
+			uci set wireless.radio1.channel="$ch"
+		}
+		uci commit wireless
+		wifi reload >/dev/null 2>&1
+		msg="无线设置已保存，正在重启 WiFi…"
+		;;
+	lan)
+		ip=$(post_val ipaddr); mask=$(post_val netmask)
+		[ -n "$ip" ]   && uci set network.lan.ipaddr="$ip"
+		[ -n "$mask" ] && uci set network.lan.netmask="$mask"
+		uci commit network
+		/etc/init.d/network reload >/dev/null 2>&1
+		msg="LAN 设置已保存。若改了 IP，请用新地址重新打开本页。"
+		;;
+	macsync)
+		/usr/bin/ap-mac-sync.sh >/tmp/macsync.log 2>&1
+		msg="已重新生成无线 MAC 并统一 SSID：$(cat /tmp/macsync.log 2>/dev/null)"
+		;;
+esac
+rm -f "$POST_FILE"
+
+# ---------- 当前值 ----------
+ssid=$(uci -q get wireless.@wifi-iface[0].ssid)
+key=$(uci -q get wireless.@wifi-iface[0].key)
+ch=$(uci -q get wireless.radio0.channel)
+mac0=$(uci -q get wireless.@wifi-iface[0].macaddr)
+mac1=$(uci -q get wireless.@wifi-iface[1].macaddr)
+lanip=$(uci -q get network.lan.ipaddr)
+lanmask=$(uci -q get network.lan.netmask)
+
+# ---------- 输出页面 ----------
+echo "Content-Type: text/html; charset=utf-8"
+echo ""
+cat <<HTML
+<!DOCTYPE html><html lang="zh"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HA030WC AP</title>
+<style>
+body{font-family:-apple-system,"Microsoft YaHei",sans-serif;max-width:460px;margin:24px auto;padding:0 16px;color:#1a1b1c;background:#f4f3ee}
+h1{font-size:19px;margin:0 0 4px}
+.sub{color:#6b7280;font-size:12px;margin-bottom:16px}
+.card{background:#fff;border:1px solid #e4e3dd;border-radius:12px;padding:14px;margin-bottom:14px}
+h2{font-size:14px;margin:0 0 10px;color:#2563eb}
+label{display:block;font-size:12px;color:#6b7280;margin:10px 0 4px}
+input{width:100%;padding:9px;box-sizing:border-box;border:1px solid #d1d5db;border-radius:8px;font-size:14px}
+button{width:100%;padding:11px;margin-top:12px;background:#2563eb;color:#fff;border:0;border-radius:8px;font-size:15px;cursor:pointer}
+button.green{background:#16a34a}
+.msg{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;border-radius:8px;padding:10px;font-size:13px;margin-bottom:14px}
+.mac{font-size:12px;color:#6b7280;margin-top:6px}
+</style></head><body>
+<h1>HA030WC 无线 AP</h1>
+<div class="sub">仅保留无线与 LAN 设置 · 其它功能已精简</div>
+HTML
+
+[ -n "$msg" ] && echo "<div class='msg'>$msg</div>"
+
+cat <<HTML
+<div class="card">
+<h2>无线设置（2.4G / 5G 同步）</h2>
+<form method="post" action="/cgi-bin/apconfig">
+<input type="hidden" name="action" value="wifi">
+<label>SSID 名称</label>
+<input name="ssid" value="$ssid">
+<label>WiFi 密码</label>
+<input name="key" value="$key">
+<label>信道（auto 自动）</label>
+<input name="channel" value="$ch" placeholder="auto">
+<button type="submit">保存无线</button>
+</form>
+<div class="mac">当前 MAC：2.4G $mac0 ｜ 5G $mac1</div>
+</div>
+
+<div class="card">
+<h2>LAN 管理地址</h2>
+<form method="post" action="/cgi-bin/apconfig">
+<input type="hidden" name="action" value="lan">
+<label>管理 IP</label>
+<input name="ipaddr" value="$lanip">
+<label>子网掩码</label>
+<input name="netmask" value="$lanmask">
+<button type="submit">保存 LAN</button>
+</form>
+</div>
+
+<div class="card">
+<h2>一键工具</h2>
+<form method="post" action="/cgi-bin/apconfig">
+<input type="hidden" name="action" value="macsync">
+<button type="submit" class="green">一键：换无线 MAC + 统一双频 SSID</button>
+</form>
+</div>
+</body></html>
+HTML

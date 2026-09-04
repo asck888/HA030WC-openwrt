@@ -1,0 +1,84 @@
+<html style="margin:0;padding:0;">
+<div style="background-color:transparent;box-sizing:border-box;font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;color:#1A1B1C;padding:8px;">
+  <div style="max-width:520px;margin:0 auto;">
+
+    <div style="text-align:center;margin-bottom:14px;">
+      <div style="font-size:16px;font-weight:600;">HA030WC · OpenWrt AP 固件流程</div>
+      <div style="font-size:12px;color:#6B7280;margin-top:2px;">TTL 日志已确认硬件 · en7528 子目标已支持 · 可编译</div>
+    </div>
+
+    <!-- 1 硬件 -->
+    <div style="background:#fff;border:1px solid #E4E3DD;border-radius:12px;padding:12px;">
+      <div style="font-size:13px;font-weight:600;color:#16A34A;">① 硬件（TTL 日志确认）</div>
+      <div style="font-size:12px;color:#374151;margin-top:6px;line-height:1.7;">
+        主控 <b>EN7561DU</b>（bootloader 报 EN7528 家族）<br>
+        内存 <b>128MB</b> · 闪存 <b>W25N01G 128MB NAND</b><br>
+        无线 MT7613BEN(5G)+MT7603(2.4G) · 2LAN+1WAN
+      </div>
+    </div>
+    <div style="text-align:center;color:#9CA3AF;font-size:16px;line-height:1;">↓</div>
+
+    <!-- 2 现状 -->
+    <div style="background:#ECFDF5;border:1px solid #A7F3D0;border-radius:12px;padding:12px;">
+      <div style="font-size:13px;font-weight:600;color:#065F46;">② OpenWrt 现状（好消息）</div>
+      <div style="font-size:12px;color:#374151;margin-top:6px;line-height:1.7;">
+        主线 <b>econet/en7528</b> 子目标已存在，<br>
+        用 NAND+UBI + free-bootbase，和本机<b>完全对上</b>。
+      </div>
+    </div>
+    <div style="text-align:center;color:#9CA3AF;font-size:16px;line-height:1;">↓</div>
+
+    <!-- 3 两步走 -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <div style="flex:1 1 200px;min-width:0;background:#fff;border:1px solid #E4E3DD;border-radius:12px;padding:12px;">
+        <div style="font-size:13px;font-weight:600;color:#2563eb;">第一步 · 试通用镜像</div>
+        <div style="font-size:12px;color:#374151;margin-top:6px;line-height:1.7;">
+          直接编译 en7528_generic，<br>
+          内存/网口不对再调。
+        </div>
+      </div>
+      <div style="flex:1 1 200px;min-width:0;background:#fff;border:1px solid #E4E3DD;border-radius:12px;padding:12px;">
+        <div style="font-size:13px;font-weight:600;color:#2563eb;">第二步 · 专用 DTS</div>
+        <div style="font-size:12px;color:#374151;margin-top:6px;line-height:1.7;">
+          用本仓库 en7528_nokia_ha030wc.dts，<br>
+          128MB 内存 + 2LAN+1WAN。
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;color:#9CA3AF;font-size:16px;line-height:1;">↓</div>
+
+    <!-- 4 编译 -->
+    <div style="background:#fff;border:1px solid #E4E3DD;border-radius:12px;padding:12px;">
+      <div style="font-size:13px;font-weight:600;color:#2563eb;">③ 编译（已配好）</div>
+      <div style="font-size:12px;color:#374151;margin-top:6px;line-height:1.7;">
+        本地 <code>build/build-econet.sh</code> · GitHub Actions 云编译<br>
+        自动装 DTS + files/ 定制层
+      </div>
+    </div>
+    <div style="text-align:center;color:#9CA3AF;font-size:16px;line-height:1;">↓</div>
+
+    <!-- 5 TTL -->
+    <div style="background:#fff;border:1px solid #E4E3DD;border-radius:12px;padding:12px;">
+      <div style="font-size:13px;font-weight:600;color:#2563eb;">④ TTL 刷机</div>
+      <div style="font-size:12px;color:#374151;margin-top:6px;line-height:1.7;">
+        接线 115200 · <b>先 dd 备份整片 NAND</b><br>
+        bootloader TFTP 内存启动 → sysupgrade 写入
+      </div>
+    </div>
+    <div style="text-align:center;color:#9CA3AF;font-size:16px;line-height:1;">↓</div>
+
+    <!-- 6 网页 -->
+    <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:12px;">
+      <div style="font-size:13px;font-weight:600;color:#1D4ED8;">⑤ 网页配置（已做好）</div>
+      <div style="font-size:12px;color:#374151;margin-top:6px;line-height:1.7;">
+        访问 <b>http://192.168.8.1</b> → 改无线/LAN<br>
+        一键：<b>换无线 MAC + 双频同 SSID</b>
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:#9CA3AF;text-align:center;margin-top:12px;">
+      硬件型号来自主板丝印 + TTL 启动日志
+    </div>
+  </div>
+</div>
+</html>

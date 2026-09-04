@@ -1,0 +1,15 @@
+# HA030WC AP 模式 - 系统基本配置
+
+config system
+	option hostname 'HA030WC-AP'
+	option timezone 'CST-8'
+	option zonename 'Asia/Shanghai'
+	option ttylogin '0'
+	option log_size '64'
+	option urandom_seed '0'
+
+config timeserver 'ntp'
+	list server 'ntp.aliyun.com'
+	list server 'cn.pool.ntp.org'
+	option enabled '1'
+	option enable_server '0'

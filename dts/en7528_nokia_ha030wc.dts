@@ -1,0 +1,55 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+//
+// Nokia Bell HA030WC (中国移动定制)
+// SoC: Econet EN7561DU (bootloader 报为 EN7528 家族, machine = econet,en751221)
+// CPU: MIPS 1004Kc 多核, little-endian
+// RAM: 128MB DDR3
+// Flash: Winbond W25N01G 128MB SPI NAND
+// WiFi: MT7603 (2.4G, PCI 0000:01:00.0) + MT7663 (5G, PCI 0000:02:00.0)
+// Ports: 2x LAN + 1x WAN, 全千兆
+//
+// 放到 openwrt/target/linux/econet/dts/ 下
+
+/dts-v1/;
+#include "en7528.dtsi"
+
+/ {
+	model = "Nokia Bell HA030WC";
+	compatible = "nokia,ha030wc", "econet,en7528";
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x00000000 0x08000000>;	/* 128MB = 0x8000000 */
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	aliases {
+		serial0 = &uart;
+	};
+};
+
+/* WiFi 射频 */
+&pcie0 { status = "okay"; };	/* MT7663 5G */
+&pcie1 { status = "okay"; };	/* MT7603 2.4G */
+
+/* 以太网 */
+&gmac0 { status = "okay"; };
+&switch { status = "okay"; };
+
+/* 网口标签：2 LAN + 1 WAN
+ * 实际名称待 OpenWrt 启动后 ls /sys/class/net/ 核对 */
+&gsw_port1 { label = "lan1"; status = "okay"; };
+&gsw_port2 { label = "lan2"; status = "okay"; };
+&gsw_port3 { label = "wan";  status = "okay"; };
+
+/* NAND 分区：沿用原厂布局，不重新分区 */
+&partitions {
+	/* 原厂 reservearea 分区（含无线 EEPROM） */
+	partition@6dc0000 {
+		label = "reservearea";
+		reg = <0x6dc0000 0x240000>;
+	};
+};

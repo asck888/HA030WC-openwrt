@@ -1,0 +1,33 @@
+#!/bin/sh
+# HA030WC 首启脚本：把双频设为 AP 模式、统一 SSID/密码、随机化无线 MAC
+# 由 OpenWrt 在首次启动时自动执行一次（/etc/uci-defaults/）。
+
+# 若还没有 wireless 配置，先让系统探测生成
+[ -e /etc/config/wireless ] || wifi detect > /etc/config/wireless 2>/dev/null
+
+# 国家码（国内信道合规）
+uci -q set wireless.radio0.country='CN'
+uci -q set wireless.radio1.country='CN'
+
+# 两个频段都做 AP，桥到 lan，统一 SSID/密码
+uci -q set wireless.@wifi-iface[0].mode='ap'
+uci -q set wireless.@wifi-iface[0].network='lan'
+uci -q set wireless.@wifi-iface[0].ssid='HA030WC'
+uci -q set wireless.@wifi-iface[0].encryption='psk2'
+uci -q set wireless.@wifi-iface[0].key='12345678'
+
+uci -q set wireless.@wifi-iface[1].mode='ap'
+uci -q set wireless.@wifi-iface[1].network='lan'
+uci -q set wireless.@wifi-iface[1].ssid='HA030WC'
+uci -q set wireless.@wifi-iface[1].encryption='psk2'
+uci -q set wireless.@wifi-iface[1].key='12345678'
+
+# 首启随机化无线 MAC，避免多台同固件设备 MAC 撞车
+/usr/bin/ap-mac-sync.sh 'HA030WC' '12345678'
+
+uci commit wireless
+uci commit network
+uci commit dhcp
+uci commit firewall
+
+exit 0

@@ -1,0 +1,27 @@
+# HA030WC OpenWrt - AP 模式网络配置
+# 说明：纯 AP，所有网口桥接到 br-lan，仅设一个静态管理 IP，不拨号、不做 NAT。
+# 注意：list ports 里的网口名必须和本机 DTS(DSA) 里的网口名一致。
+#       econet 平台常见为 lan1 lan2 wan（或 lan0 lan1 wan）。
+#       若刷入后网口不通，先在 TTL 里 `ls /sys/class/net/` 看实际名字，改这里即可。
+
+config interface 'loopback'
+	option device 'lo'
+	option proto 'static'
+	option ipaddr '127.0.0.1'
+	option netmask '255.0.0.0'
+
+config device
+	option name 'br-lan'
+	option type 'bridge'
+	option ipv6 '0'
+	list ports 'lan1'
+	list ports 'lan2'
+	list ports 'wan'
+
+config interface 'lan'
+	option device 'br-lan'
+	option proto 'static'
+	# 管理地址：改成和你主路由同网段，方便进入。默认 192.168.8.1
+	option ipaddr '192.168.8.1'
+	option netmask '255.255.255.0'
+	# 不设 gateway / dns：AP 本身不需要上网，管理用静态 IP 即可

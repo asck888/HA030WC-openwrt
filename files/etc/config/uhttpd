@@ -1,0 +1,18 @@
+# HA030WC 极简网页服务器配置
+# 直接把根路径指向我们自己的 CGI 后台，不挂 LuCI。
+
+config uhttpd 'main'
+	list listen_http '0.0.0.0:80'
+	option home '/www'
+	option rfc1918_filter '0'
+	option max_requests '3'
+	option max_connections '50'
+	option cgi_prefix '/cgi-bin'
+	option script_timeout '60'
+	option network_timeout '30'
+	option http_keepalive '20'
+	option tcp_keepalive '1'
+	option redirect_https '0'
+	# 访问 / 直接进入极简配置页
+	option index_page 'cgi-bin/apconfig'
+	option error_page '/cgi-bin/apconfig'

@@ -44,9 +44,9 @@ jobs:
           CONFIG_PACKAGE_kmod-mt7603=y
           CONFIG_PACKAGE_kmod-mt7615e=y
           CONFIG_PACKAGE_kmod-mt7663-firmware-ap=y
-          CONFIG_PACKAGE_wpad-basic-mbedtls=y
+          CONFIG_PACKAGE_wpad-basic-openssl=y
+          CONFIG_PACKAGE_wpad-basic-mbedtls=n
           CONFIG_PACKAGE_wpad-mbedtls=n
-          CONFIG_PACKAGE_ustream-ssl-mbedtls=n
           CONFIG_PACKAGE_odhcp6c=n
           CONFIG_PACKAGE_odhcpd-ipv6only=n
           CONFIG_PACKAGE_ppp=n

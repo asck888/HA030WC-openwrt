@@ -41,17 +41,27 @@ jobs:
           EOF
           make defconfig
 
-      - name: Build with CMakeLists patch
+      - name: Build
         run: |
           cd openwrt
           make download -j8
-          # Patch the ustream-ssl package Makefile to add CMAKE find path
-          PKG_MK=package/libs/ustream-ssl/Makefile
-          # Add CMAKE_OPTIONS to let find_library search staging dir
-          sed -i '/include $(INCLUDE_DIR)\/cmake.mk/i CMAKE_OPTIONS += -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH -DCMAKE_PREFIX_PATH=$(STAGING_DIR)/usr' $PKG_MK
-          echo "=== Patched Makefile ==="
-          grep CMAKE $PKG_MK
-          # Now build
+          # First build mbedtls and install to staging
+          make package/libs/mbedtls/compile V=s -j$(nproc)
+          make package/libs/mbedtls/install V=s
+          # Now patch ustream-ssl CMakeLists to find mbedtls explicitly
+          USL_DIR=$(find build_dir -maxdepth 3 -name "ustream-ssl-*" -type d 2>/dev/null | head -1)
+          if [ -z "$USL_DIR" ]; then
+            make package/libs/ustream-ssl/prepare V=s
+            USL_DIR=$(find build_dir -maxdepth 3 -name "ustream-ssl-*" -type d 2>/dev/null | head -1)
+          fi
+          echo "Patching CMakeLists in: $USL_DIR"
+          STAGING_LIB="$PWD/staging_dir/target-mipsel_24kc_musl/usr/lib"
+          sed -i "s|FIND_LIBRARY(mbedtls_library mbedtls)|FIND_LIBRARY(mbedtls_library mbedtls PATHS $STAGING_LIB NO_DEFAULT_PATH)|" "$USL_DIR/CMakeLists.txt"
+          sed -i "s|FIND_LIBRARY(mbedx509_library mbedx509)|FIND_LIBRARY(mbedx509_library mbedx509 PATHS $STAGING_LIB NO_DEFAULT_PATH)|" "$USL_DIR/CMakeLists.txt"
+          sed -i "s|FIND_LIBRARY(mbedcrypto_library mbedcrypto)|FIND_LIBRARY(mbedcrypto_library mbedcrypto PATHS $STAGING_LIB NO_DEFAULT_PATH)|" "$USL_DIR/CMakeLists.txt"
+          echo "=== Patched ==="
+          grep FIND_LIBRARY "$USL_DIR/CMakeLists.txt" | grep -i mbed
+          # Build everything
           make -j$(nproc) V=s
 
       - name: List output

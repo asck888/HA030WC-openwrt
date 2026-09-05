@@ -25,10 +25,36 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Apply DTS and device
+      - name: Apply DTS, device and ustream-ssl fix
         run: |
           cp dts/en7528_nokia_ha030wc.dts openwrt/target/linux/econet/dts/
           cat dts/en7528-ha030wc.mk >> openwrt/target/linux/econet/image/en7528.mk
+
+          # 1. Patch the package Makefile to pass STAGING_DIR as CMake var
+          PKG_MK=openwrt/package/libs/ustream-ssl/Makefile
+          sed -i '/include $(INCLUDE_DIR)\/package.mk/i CMAKE_OPTIONS += -DSTAGING_DIR=$(STAGING_DIR)' $PKG_MK
+          echo "=== Makefile patched ==="
+          grep CMAKE $PKG_MK
+
+          # 2. Drop a patch for CMakeLists.txt to use STAGING_DIR
+          mkdir -p openwrt/package/libs/ustream-ssl/patches
+          cat > openwrt/package/libs/ustream-ssl/patches/100-find-mbedtls.patch <<'PATCHEOF'
+          --- a/CMakeLists.txt
+          +++ b/CMakeLists.txt
+          @@ -18,9 +18,9 @@
+           IF(MBEDTLS)
+             ADD_DEFINITIONS(-DHAVE_MBEDTLS)
+             SET(SSL_SRC ustream-mbedtls.c)
+          -  FIND_LIBRARY(mbedtls_library mbedtls)
+          -  FIND_LIBRARY(mbedx509_library mbedx509)
+          -  FIND_LIBRARY(mbedcrypto_library mbedcrypto)
+          +  FIND_LIBRARY(mbedtls_library mbedtls PATHS ${STAGING_DIR}/usr/lib NO_DEFAULT_PATH)
+          +  FIND_LIBRARY(mbedx509_library mbedx509 PATHS ${STAGING_DIR}/usr/lib NO_DEFAULT_PATH)
+          +  FIND_LIBRARY(mbedcrypto_library mbedcrypto PATHS ${STAGING_DIR}/usr/lib NO_DEFAULT_PATH)
+             SET(SSL_LIB ${mbedtls_library} ${mbedx509_library} ${mbedcrypto_library} m)
+          ELSEIF(WOLFSSL)
+          PATCHEOF
+          echo "=== CMakeLists patch created ==="
 
       - name: Configure
         run: |
@@ -45,23 +71,7 @@ jobs:
         run: |
           cd openwrt
           make download -j8
-          # First build mbedtls and install to staging
-          make package/libs/mbedtls/compile V=s -j$(nproc)
-          make package/libs/mbedtls/install V=s
-          # Now patch ustream-ssl CMakeLists to find mbedtls explicitly
-          USL_DIR=$(find build_dir -maxdepth 3 -name "ustream-ssl-*" -type d 2>/dev/null | head -1)
-          if [ -z "$USL_DIR" ]; then
-            make package/libs/ustream-ssl/prepare V=s
-            USL_DIR=$(find build_dir -maxdepth 3 -name "ustream-ssl-*" -type d 2>/dev/null | head -1)
-          fi
-          echo "Patching CMakeLists in: $USL_DIR"
-          STAGING_LIB="$PWD/staging_dir/target-mipsel_24kc_musl/usr/lib"
-          sed -i "s|FIND_LIBRARY(mbedtls_library mbedtls)|FIND_LIBRARY(mbedtls_library mbedtls PATHS $STAGING_LIB NO_DEFAULT_PATH)|" "$USL_DIR/CMakeLists.txt"
-          sed -i "s|FIND_LIBRARY(mbedx509_library mbedx509)|FIND_LIBRARY(mbedx509_library mbedx509 PATHS $STAGING_LIB NO_DEFAULT_PATH)|" "$USL_DIR/CMakeLists.txt"
-          sed -i "s|FIND_LIBRARY(mbedcrypto_library mbedcrypto)|FIND_LIBRARY(mbedcrypto_library mbedcrypto PATHS $STAGING_LIB NO_DEFAULT_PATH)|" "$USL_DIR/CMakeLists.txt"
-          echo "=== Patched ==="
-          grep FIND_LIBRARY "$USL_DIR/CMakeLists.txt" | grep -i mbed
-          # Build everything
+          make tools/install -j$(nproc)
           make -j$(nproc) V=s
 
       - name: List output

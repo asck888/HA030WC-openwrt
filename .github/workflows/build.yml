@@ -25,10 +25,8 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Apply custom overlay + DTS
+      - name: Apply DTS and device
         run: |
-          rm -rf openwrt/files
-          cp -r files openwrt/files
           cp dts/en7528_nokia_ha030wc.dts openwrt/target/linux/econet/dts/
           cat dts/en7528-ha030wc.mk >> openwrt/target/linux/econet/image/en7528.mk
 
@@ -39,12 +37,10 @@ jobs:
           CONFIG_TARGET_econet=y
           CONFIG_TARGET_econet_en7528=y
           CONFIG_TARGET_MULTI_PROFILE=y
-          CONFIG_TARGET_DEVICE_econet_en7528_GENERIC=y
           CONFIG_TARGET_DEVICE_econet_en7528_nokia_ha030wc=y
           CONFIG_PACKAGE_uhttpd=y
           CONFIG_PACKAGE_uhttpd-mod-ubus=n
           CONFIG_PACKAGE_luci=n
-          CONFIG_PACKAGE_uci=y
           CONFIG_PACKAGE_kmod-mt7603=y
           CONFIG_PACKAGE_kmod-mt7615e=y
           CONFIG_PACKAGE_kmod-mt7663-firmware-ap=y

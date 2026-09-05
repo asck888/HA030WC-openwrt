@@ -33,34 +33,20 @@ jobs:
       - name: Configure
         run: |
           cd openwrt
+          # 最干净的配置：只选 target 和设备，其他全部默认
           cat > .config <<'EOF'
           CONFIG_TARGET_econet=y
           CONFIG_TARGET_econet_en7528=y
           CONFIG_TARGET_MULTI_PROFILE=y
           CONFIG_TARGET_DEVICE_econet_en7528_nokia_ha030wc=y
-          CONFIG_KERNEL_KALLSYMS=n
-          CONFIG_KERNEL_DEBUG_INFO=n
           EOF
           make defconfig
-
-      - name: Patch ustream-ssl CMake bug
-        run: |
-          cd openwrt
-          # Fix: CMake can't find mbedtls libraries in staging dir
-          # Patch the CMakeLists.txt to use find_library with proper paths
-          USL_DIR=$(find package/libs/ustream-ssl -name "CMakeLists.txt" | head -1)
-          echo "Patching: $USL_DIR"
-          # Replace find_library calls to search staging_dir
-          sed -i 's|find_library(MBEDTLS_LIBRARY NAMES mbedtls)|find_library(MBEDTLS_LIBRARY NAMES mbedtls PATHS ${STAGING_DIR}/usr/lib NO_DEFAULT_PATH)|' "$USL_DIR"
-          sed -i 's|find_library(MBEDCRYPTO_LIBRARY NAMES mbedcrypto)|find_library(MBEDCRYPTO_LIBRARY NAMES mbedcrypto PATHS ${STAGING_DIR}/usr/lib NO_DEFAULT_PATH)|' "$USL_DIR"
-          sed -i 's|find_library(MBEDX509_LIBRARY NAMES mbedx509)|find_library(MBEDX509_LIBRARY NAMES mbedx509 PATHS ${STAGING_DIR}/usr/lib NO_DEFAULT_PATH)|' "$USL_DIR"
-          echo "=== Patched CMakeLists ==="
-          grep find_library "$USL_DIR" || true
+          echo "=== Selected SSL/wifi packages ==="
+          grep -E "mbedtls|ustream|wpad|openssl|wolfssl" .config || echo "(none found)"
 
       - name: Build
         run: |
           cd openwrt
-          export STAGING_DIR=$(pwd)/staging_dir/target-mipsel_24kc_musl
           make download -j8
           make -j$(nproc) V=s
 

@@ -33,7 +33,6 @@ jobs:
       - name: Configure
         run: |
           cd openwrt
-          # 最干净的配置：只选 target 和设备，其他全部默认
           cat > .config <<'EOF'
           CONFIG_TARGET_econet=y
           CONFIG_TARGET_econet_en7528=y
@@ -41,8 +40,18 @@ jobs:
           CONFIG_TARGET_DEVICE_econet_en7528_nokia_ha030wc=y
           EOF
           make defconfig
-          echo "=== Selected SSL/wifi packages ==="
-          grep -E "mbedtls|ustream|wpad|openssl|wolfssl" .config || echo "(none found)"
+
+      - name: Patch ustream-ssl to fix mbedtls CMake
+        run: |
+          cd openwrt
+          # Patch the package Makefile to add CMAKE_FIND_ROOT_PATH
+          PKG_MK=package/libs/ustream-ssl/Makefile
+          echo "=== Before patch ==="
+          cat $PKG_MK
+          # Add CMAKE_OPTIONS to find mbedtls in staging dir
+          sed -i '/include $(INCLUDE_DIR)\/package.mk/i CMAKE_OPTIONS += -DCMAKE_FIND_ROOT_PATH=$(STAGING_DIR)/usr -DCMAKE_PREFIX_PATH=$(STAGING_DIR)/usr' $PKG_MK
+          echo "=== After patch ==="
+          grep CMAKE $PKG_MK
 
       - name: Build
         run: |

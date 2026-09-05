@@ -41,22 +41,17 @@ jobs:
           EOF
           make defconfig
 
-      - name: Patch ustream-ssl to fix mbedtls CMake
-        run: |
-          cd openwrt
-          # Patch the package Makefile to add CMAKE_FIND_ROOT_PATH
-          PKG_MK=package/libs/ustream-ssl/Makefile
-          echo "=== Before patch ==="
-          cat $PKG_MK
-          # Add CMAKE_OPTIONS to find mbedtls in staging dir
-          sed -i '/include $(INCLUDE_DIR)\/package.mk/i CMAKE_OPTIONS += -DCMAKE_FIND_ROOT_PATH=$(STAGING_DIR)/usr -DCMAKE_PREFIX_PATH=$(STAGING_DIR)/usr' $PKG_MK
-          echo "=== After patch ==="
-          grep CMAKE $PKG_MK
-
-      - name: Build
+      - name: Build with CMakeLists patch
         run: |
           cd openwrt
           make download -j8
+          # Patch the ustream-ssl package Makefile to add CMAKE find path
+          PKG_MK=package/libs/ustream-ssl/Makefile
+          # Add CMAKE_OPTIONS to let find_library search staging dir
+          sed -i '/include $(INCLUDE_DIR)\/cmake.mk/i CMAKE_OPTIONS += -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH -DCMAKE_PREFIX_PATH=$(STAGING_DIR)/usr' $PKG_MK
+          echo "=== Patched Makefile ==="
+          grep CMAKE $PKG_MK
+          # Now build
           make -j$(nproc) V=s
 
       - name: List output

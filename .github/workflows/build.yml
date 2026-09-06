@@ -28,19 +28,11 @@ jobs:
       - name: Apply DTS, device and patch
         run: |
           cp dts/en7528_nokia_ha030wc.dts openwrt/target/linux/econet/dts/
-          # Insert device definition BEFORE BuildImage eval
-          python3 -c "
-import sys
-with open('openwrt/target/linux/econet/image/en7528.mk') as f: content = f.read()
-with open('dts/en7528-ha030wc.mk') as f: dev = f.read()
-content = content.replace('\$(eval \$(call BuildImage))', dev + '\n\$(eval \$(call BuildImage))')
-with open('openwrt/target/linux/econet/image/en7528.mk','w') as f: f.write(content)
-"
-          # Install the ustream-ssl CMakeLists patch
+          chmod +x apply_device.sh && ./apply_device.sh
           mkdir -p openwrt/package/libs/ustream-ssl/patches
-          cp patches/100-find-mbedtls.patch openwrt/package/libs/ustream-ssl/patches/
-          echo "=== Patch installed ==="
-          cat openwrt/package/libs/ustream-ssl/patches/100-find-mbedtls.patch
+          cp patches/100-find-mbedtls.patch openwrt/package/libs/ustream-ssl/patches
+          echo "=== Verify device in en7528.mk ==="
+          grep -c "nokia_ha030wc" openwrt/target/linux/econet/image/en7528.mk
 
       - name: Configure
         run: |

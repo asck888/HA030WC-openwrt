@@ -25,10 +25,15 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Apply DTS and device
+      - name: Apply DTS, device and patch
         run: |
           cp dts/en7528_nokia_ha030wc.dts openwrt/target/linux/econet/dts/
           cat dts/en7528-ha030wc.mk >> openwrt/target/linux/econet/image/en7528.mk
+          # Install the ustream-ssl CMakeLists patch
+          mkdir -p openwrt/package/libs/ustream-ssl/patches
+          cp patches/100-find-mbedtls.patch openwrt/package/libs/ustream-ssl/patches/
+          echo "=== Patch installed ==="
+          cat openwrt/package/libs/ustream-ssl/patches/100-find-mbedtls.patch
 
       - name: Configure
         run: |
@@ -45,20 +50,7 @@ jobs:
         run: |
           cd openwrt
           make download -j8
-          # Build host tools and toolchain first
           make tools/install -j$(nproc)
-          make toolchain/install -j$(nproc)
-          # Unpack ustream-ssl source and patch CMakeLists.txt
-          make package/libs/ustream-ssl/prepare V=s
-          USL_CMAKE=$(find build_dir -name "CMakeLists.txt" -path "*ustream-ssl*" 2>/dev/null | head -1)
-          echo "Patching: $USL_CMAKE"
-          STAGING_LIB="$PWD/staging_dir/target-mipsel_24kc_musl/usr/lib"
-          sed -i "s|FIND_LIBRARY(mbedtls_library mbedtls)|FIND_LIBRARY(mbedtls_library mbedtls PATHS $STAGING_LIB NO_DEFAULT_PATH)|" "$USL_CMAKE"
-          sed -i "s|FIND_LIBRARY(mbedx509_library mbedx509)|FIND_LIBRARY(mbedx509_library mbedx509 PATHS $STAGING_LIB NO_DEFAULT_PATH)|" "$USL_CMAKE"
-          sed -i "s|FIND_LIBRARY(mbedcrypto_library mbedcrypto)|FIND_LIBRARY(mbedcrypto_library mbedcrypto PATHS $STAGING_LIB NO_DEFAULT_PATH)|" "$USL_CMAKE"
-          echo "=== Patched ==="
-          grep FIND_LIBRARY "$USL_CMAKE" | grep -i mbed
-          # Build everything
           make -j$(nproc) V=s
 
       - name: List output

@@ -5,10 +5,8 @@
 // CPU: MIPS 1004Kc 多核, little-endian
 // RAM: 128MB DDR3
 // Flash: Winbond W25N01G 128MB SPI NAND
-// WiFi: MT7603 (2.4G, PCI 0000:01:00.0) + MT7663 (5G, PCI 0000:02:00.0)
+// WiFi: MT7603 (2.4G) + MT7663 (5G)
 // Ports: 2x LAN + 1x WAN, 全千兆
-//
-// 放到 openwrt/target/linux/econet/dts/ 下
 
 /dts-v1/;
 #include "en7528.dtsi"
@@ -19,7 +17,7 @@
 
 	memory@0 {
 		device_type = "memory";
-		reg = <0x00000000 0x08000000>;	/* 128MB = 0x8000000 */
+		reg = <0x00000000 0x08000000>;
 	};
 
 	chosen {
@@ -31,25 +29,61 @@
 	};
 };
 
-/* WiFi 射频 */
-&pcie0 { status = "okay"; };	/* MT7663 5G */
-&pcie1 { status = "okay"; };	/* MT7603 2.4G */
+&pcie0 { status = "okay"; };
+&pcie1 { status = "okay"; };
 
-/* 以太网 */
 &gmac0 { status = "okay"; };
 &switch { status = "okay"; };
 
-/* 网口标签：2 LAN + 1 WAN
- * 实际名称待 OpenWrt 启动后 ls /sys/class/net/ 核对 */
 &gsw_port1 { label = "lan1"; status = "okay"; };
 &gsw_port2 { label = "lan2"; status = "okay"; };
 &gsw_port3 { label = "wan";  status = "okay"; };
 
-/* NAND 分区：沿用原厂布局，不重新分区 */
-&partitions {
-	/* 原厂 reservearea 分区（含无线 EEPROM） */
-	partition@6dc0000 {
-		label = "reservearea";
-		reg = <0x6dc0000 0x240000>;
+&nand {
+	status = "okay";
+	econet,bmt;
+	econet,bbt-table-size = <250>;
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		partition@0 {
+			label = "bootloader";
+			reg = <0x0 0x40000>;
+			read-only;
+		};
+
+		partition@40000 {
+			label = "romfile";
+			reg = <0x40000 0x40000>;
+		};
+
+		partition@80000 {
+			label = "tclinux";
+			reg = <0x80000 0x1900000>;
+			econet,enable-remap;
+		};
+
+		partition@1980000 {
+			label = "tclinux_slave";
+			reg = <0x1980000 0x1900000>;
+		};
+
+		partition@3280000 {
+			label = "jffs2";
+			reg = <0x3280000 0xf00000>;
+		};
+
+		partition@4180000 {
+			label = "config";
+			reg = <0x4180000 0x200000>;
+		};
+
+		partition@4380000 {
+			label = "reservearea";
+			reg = <0x4380000 0x240000>;
+		};
 	};
 };

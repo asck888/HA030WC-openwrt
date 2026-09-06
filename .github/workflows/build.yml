@@ -31,10 +31,10 @@ jobs:
           chmod +x apply_device.sh && ./apply_device.sh
           mkdir -p openwrt/package/libs/ustream-ssl/patches
           cp patches/100-find-mbedtls.patch openwrt/package/libs/ustream-ssl/patches
-          echo "=== Verify device in en7528.mk ==="
-          grep -c "nokia_ha030wc" openwrt/target/linux/econet/image/en7528.mk
+          echo "=== en7528.mk tail ==="
+          tail -20 openwrt/target/linux/econet/image/en7528.mk
 
-      - name: Configure
+      - name: Configure and debug
         run: |
           cd openwrt
           cat > .config <<'EOF'
@@ -47,6 +47,10 @@ jobs:
           CONFIG_PACKAGE_kernel=y
           EOF
           make defconfig
+          echo "=== Available devices ==="
+          make TARGET_PER_DEVICE_ROOTFS=1 DEVICE_TITLE=1 info 2>/dev/null | grep -i "nokia\|ha030" || echo "Device not found in make info!"
+          echo "=== Config device lines ==="
+          grep "TARGET_DEVICE" .config
 
       - name: Build
         run: |

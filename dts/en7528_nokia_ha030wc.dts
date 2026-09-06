@@ -22,6 +22,8 @@
 
 	chosen {
 		stdout-path = "serial0:115200n8";
+		linux,usable-memory-range = <0x00020000 0x0ffe0000>;
+		bootargs = "console=ttyS0,115200 ubi.mtd=tclinux_rootfs root=ubi0:rootfs rootfstype=ubfs";
 	};
 
 	aliases {
@@ -64,6 +66,19 @@
 			label = "tclinux";
 			reg = <0x80000 0x1900000>;
 			econet,enable-remap;
+		};
+
+		/* Nested: kernel (4MB) within tclinux */
+		partition1@80000 {
+			label = "tclinux_kernel";
+			reg = <0x80000 0x400000>;
+			econet,enable-remap;
+		};
+
+		/* Nested: UBI rootfs after kernel */
+		partition1@480000 {
+			label = "tclinux_rootfs";
+			reg = <0x480000 0x1500000>;
 		};
 
 		partition@1980000 {

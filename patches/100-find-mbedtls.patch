@@ -1,0 +1,14 @@
+﻿--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -17,8 +17,8 @@
+ IF(MBEDTLS)
+   ADD_DEFINITIONS(-DHAVE_MBEDTLS)
+   SET(SSL_SRC ustream-mbedtls.c)
+-  FIND_LIBRARY(mbedtls_library mbedtls)
+-  FIND_LIBRARY(mbedx509_library mbedx509)
+-  FIND_LIBRARY(mbedcrypto_library mbedcrypto)
++  FIND_LIBRARY(mbedtls_library mbedtls PATHS /home/runner/work/HA030WC-openwrt/HA030WC-openwrt/openwrt/staging_dir/target-mipsel_24kc_musl/usr/lib NO_DEFAULT_PATH)
++  FIND_LIBRARY(mbedx509_library mbedx509 PATHS /home/runner/work/HA030WC-openwrt/HA030WC-openwrt/openwrt/staging_dir/target-mipsel_24kc_musl/usr/lib NO_DEFAULT_PATH)
++  FIND_LIBRARY(mbedcrypto_library mbedcrypto PATHS /home/runner/work/HA030WC-openwrt/HA030WC-openwrt/openwrt/staging_dir/target-mipsel_24kc_musl/usr/lib NO_DEFAULT_PATH)
+   SET(SSL_LIB ${mbedtls_library} ${mbedx509_library} ${mbedcrypto_library} m)
+ ELSEIF(WOLFSSL)

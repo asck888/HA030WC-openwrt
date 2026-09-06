@@ -23,7 +23,7 @@
 	chosen {
 		stdout-path = "serial0:115200n8";
 		linux,usable-memory-range = <0x00020000 0x0ffe0000>;
-		bootargs = "console=ttyS0,115200 ubi.mtd=tclinux_rootfs root=ubi0:rootfs rootfstype=ubfs";
+		bootargs = "console=ttyS0,115200 ubi.mtd=tclinux_rootfs root=ubi0:rootfs rootfstype=ubifs";
 	};
 
 	aliases {
